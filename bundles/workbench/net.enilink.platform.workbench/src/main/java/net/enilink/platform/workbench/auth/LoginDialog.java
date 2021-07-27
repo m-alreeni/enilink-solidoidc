@@ -13,7 +13,7 @@ package net.enilink.platform.workbench.auth;
 import net.enilink.platform.security.callbacks.RealmCallback;
 import net.enilink.platform.security.callbacks.RedirectCallback;
 import net.enilink.platform.security.callbacks.RegisterCallback;
-import net.enilink.platform.security.callbacks.ResponseCallback;
+import net.enilink.platform.security.callbacks.RequestCallback;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
@@ -303,8 +303,8 @@ public class LoginDialog extends TitleAreaDialog implements CallbackHandler {
 				((RealmCallback) callback).setContextUrl(getHostAndPath(RWT.getRequest()));
 				((RealmCallback) callback).setApplicationUrl(contextUrl.toString());
 				return true;
-			} else if (callback instanceof ResponseCallback) {
-				((ResponseCallback) callback).setResponseParameters(RWT.getRequest().getParameterMap());
+			} else if (callback instanceof RequestCallback) {
+				((RequestCallback) callback).setRequest(RWT.getRequest());
 				return true;
 			} else if (callback instanceof RegisterCallback) {
 				// TODO maybe add support for the register mode in RAP

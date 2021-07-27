@@ -1,29 +1,30 @@
 package net.enilink.platform.web.snippet
 
-import net.enilink.komma.core.IEntityManager
-import net.enilink.platform.core.security.{LoginUtil, SecurityUtil}
-import net.enilink.platform.lift.util.Globals
-import net.enilink.platform.security.callbacks.{RealmCallback, RedirectCallback, RegisterCallback, ResponseCallback}
-import net.liftweb.common.Box.box2Option
-import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.{S, SessionVar, Templates, TransientRequestVar}
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.provider.HTTPCookie
-import net.liftweb.json.DefaultFormats
-import net.liftweb.json.JsonAST.RenderSettings.compact
-import net.liftweb.util.{CssSel, Helpers}
-import net.liftweb.util.Helpers._
-import org.eclipse.equinox.security.auth.{ILoginContext, LoginContextFactory}
-
 import java.io.IOException
-import java.util.Collections
+
 import javax.security.auth.Subject
 import javax.security.auth.callback._
 import javax.security.auth.login.LoginException
+import javax.servlet.http.HttpServletRequest
+import net.enilink.komma.core.IEntityManager
+import net.enilink.platform.core.security.{LoginUtil, SecurityUtil}
+import net.enilink.platform.lift.util.Globals
+import net.enilink.platform.security.callbacks._
+import net.liftweb.common.Box.box2Option
+import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.provider.HTTPCookie
+import net.liftweb.http.provider.servlet.HTTPRequestServlet
+import net.liftweb.http.{S, SessionVar, Templates, TransientRequestVar}
+import net.liftweb.json.DefaultFormats
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{CssSel, Helpers}
+import org.eclipse.equinox.security.auth.{ILoginContext, LoginContextFactory}
+
 import scala.collection._
 import scala.jdk.CollectionConverters._
-import scala.xml.{Elem, Node, NodeSeq}
 import scala.xml.NodeSeq.seqToNodeSeq
+import scala.xml.{Elem, Node, NodeSeq}
 
 class Login {
   class DelegatingCallbackHandler extends CallbackHandler {
@@ -172,13 +173,13 @@ class Login {
     // prevent transferring password back to client
     if (cb.isInstanceOf[PasswordCallback]) vbox = Empty
     if (hide) vbox.toList.flatMap(hidden(field, _)) else {
-      val form = <label>{ prompt }</label><input id={ field } name={ field } type={ inputType } value={ vbox openOr "" } placeholder={ placeholder } class="form-control"/>;
+      var form = <label>{ prompt }</label><input id={ field } name={ field } type={ inputType } value={ vbox openOr "" } placeholder={ placeholder } class="form-control"/>;
       if (cb.isInstanceOf[TextInputCallback] && prompt.toLowerCase.contains("openid")) {
         form ++= <div><a href="javascript:void(0)" onclick={
-          (SetValById(field, "https://www.google.com/accounts/o8/id") & Run("$('#login-form').submit()")).toJsCmd
-        }><span>Sign in with a Google Account</span></a></div>
+          (SetValById(field, "https://solidcommunity.net") & Run("$('#login-form').submit()")).toJsCmd
+        }><span>Sign in with a Solidcommunity Account</span></a></div>
       }
-      form
+       form
     }
   }
 
@@ -254,14 +255,22 @@ class Login {
                   case cb: RealmCallback =>
                     cb.setContextUrl(S.hostAndPath)
                     cb.setApplicationUrl(S.hostAndPath + S.uri)
-                  case cb: ResponseCallback =>
-                    val params = S.request.map(_._params.map(e => (e._1, e._2.toArray)).asJava)
-                    cb.setResponseParameters(params openOr Collections.emptyMap())
+                  case cb: RequestCallback =>
+                    val request: Box[HttpServletRequest] = for {
+                      req <- S.request
+                      inner <- Box.asA[HTTPRequestServlet] (req.request)
+                    } yield  inner.req
+                    cb.setRequest(request openOr( null))
                     // add parameters for fields as hidden inputs
                     state.params foreach {
                       case (k, v :: Nil) if k.startsWith("f-") => form ++= hidden(k, v)
                       case _ =>
                     }
+                  case cb: AuthReqCallback =>
+                      val authUri = cb.getUri
+                      println("autURI: "+authUri)
+                    S.redirectTo(authUri)
+
                   case _ => // ignore unknown callback
                 }
             }

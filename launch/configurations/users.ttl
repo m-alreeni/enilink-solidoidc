@@ -1,0 +1,26 @@
+@prefix user: <enilink:user:> .
+@prefix group: <enilink:group:> .
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix auth: <http://enilink.net/vocab/auth#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+@prefix login: <plugin://net.enilink.platform.core/Login/> .
+login: login:jaasConfigUrl <jaas.conf> ;
+        login:loginModule
+        [ login:jaasConfigName "SolidOidc" ; rdfs:label "Solid OIDC" ] .
+
+# import definition of administrators group
+<> owl:imports <platform:/plugin/net.enilink.platform.core/config/group-admin.ttl> .
+
+# Define default admin user
+user:admin a foaf:Agent ; auth:password "admin" .
+
+# add admin user to administrators group
+group:Administrators foaf:member user:admin . # , user:{ldap:authzIdentity} .
+
+# allow anonymous users full access to all models
+<enilink:auth:anonymousAll> a acl:Authorization ; acl:agent user:anonymous ;
+                         acl:accessToClass <http://enilink.net/vocab/komma/models#Model> ;
+                         acl:mode acl:Read, acl:Write, acl:Control .
